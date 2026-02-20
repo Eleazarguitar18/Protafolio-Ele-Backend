@@ -29,4 +29,5 @@ export class Ruta extends BaseEntityAudit {
 
   @OneToMany(() => RutaPunto, (rutaPunto) => rutaPunto.ruta, { eager: true }) // Trae los puntos automáticamente
   rutaPuntos: RutaPunto[];
+  
 }
