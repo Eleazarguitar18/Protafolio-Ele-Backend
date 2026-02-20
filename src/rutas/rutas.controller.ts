@@ -29,16 +29,26 @@ export class RutasController {
     //console.log(CreateRutaGeneralDto);
     return this.rutasService.create_general(CreateRutaGeneralDto);
   }
+  
 
   @Get()
-  findAll() {
-    return this.rutasService.findAll();
+  findAllGeneral() {
+    return this.rutasService.findAllGeneral();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.rutasService.findOne(+id);
+  findOneGeneral(@Param('id') id: number) {
+    return this.rutasService.findOneGeneral(+id);
   }
+  // @Get()
+  // findAll() {
+  //   return this.rutasService.findAll();
+  // }
+
+  // @Get(':id')
+  // findOne(@Param('id') id: number) {
+  //   return this.rutasService.findOne(+id);
+  // }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRutaDto: UpdateRutaDto) {

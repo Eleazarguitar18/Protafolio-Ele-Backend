@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -43,6 +44,6 @@ export class Punto {
   @UpdateDateColumn({ type: 'timestamp' })
   updated_at: Date;
 
-  // @OneToMany(() => RutaPunto, (rutaPunto) => rutaPunto.punto)
-  // rutaPuntos: RutaPunto[];
+  @OneToMany(() => RutaPunto, (rutaPunto) => rutaPunto.punto)
+  rutaPuntos: RutaPunto[];
 }

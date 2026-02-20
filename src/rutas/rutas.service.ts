@@ -52,10 +52,8 @@ export class RutasService {
     return this.rutaPuntoRepository.save(rutaPuntos);
   }
   async create_general(createRutaGeneralDto: CreateRutaGeneralDto) {
-    //console.log(createRutaGeneralDto);
     const lineaDto: CreateLineaDto = createRutaGeneralDto.linea;
     const linea: Linea = await this.lineaService.create(lineaDto);
-    // createRutaGeneralDto.ruta.linea = linea;
     const rutaDto: CreateRutaDto = createRutaGeneralDto.ruta;
     rutaDto.linea = linea;
     const ruta: Ruta = await this.create(rutaDto);
@@ -74,7 +72,6 @@ export class RutasService {
             ? 0
             : puntoDto.distancia_al_siguiente,
       };
-
       await this.create_ruta_puntos(rutaPuntosDto);
     }
     return {
@@ -86,6 +83,34 @@ export class RutasService {
         ruta: ruta,
         puntos: puntos,
       },
+    };
+  }
+
+  async findAllGeneral() {
+    const rutas = await this.rutaRepository.find({
+      relations: ['linea','rutaPuntos'],
+    });
+    return {
+      status: 200,
+      success: true,
+      message: 'Rutas obtenidas correctamente',
+      data: rutas,
+    };
+  }
+
+  async findOneGeneral(id: number) {
+    const ruta = await this.rutaRepository.findOne({
+      where: { id },
+      relations: ['linea', 'rutaPuntos'],
+    });
+    if (!ruta) {
+      throw new NotFoundException(`Ruta con id ${id} no encontrada`);
+    }
+    return {
+      status: 200,
+      success: true,
+      message: 'Ruta obtenida correctamente',
+      data: ruta,
     };
   }
 
