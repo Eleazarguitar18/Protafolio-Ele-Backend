@@ -1,5 +1,5 @@
 // ruta_puntos.entity.ts
-import { BaseEntityAudit } from 'src/common/filters/entities/base-entity.audit';
+import { BaseEntityAudit } from 'src/common/entities/base-entity.audit';
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Ruta } from './ruta.entity';
 import { Punto } from 'src/puntos/entities/punto.entity';

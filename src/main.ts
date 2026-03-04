@@ -1,8 +1,8 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { HttpAdapterHost, NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
-import { TypeOrmFilter } from './common/filters/typeorm.filter';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,8 +16,12 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, documentFactory);
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe());
-  app.useGlobalFilters(new TypeOrmFilter());
+  // app.useGlobalFilters(new TypeOrmFilter());
+  // main.ts
+  const httpAdapterHost = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();
+// habilitacion de postgis:CREATE EXTENSION IF NOT EXISTS postgis;

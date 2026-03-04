@@ -13,6 +13,7 @@ import { UpdateRutaDto } from './dto/update-ruta.dto';
 import { CreateRutaGeneralDto } from './dto/create-ruta-general';
 import { ApiBody } from '@nestjs/swagger';
 import { PuntoDto } from 'src/puntos/dto/punto-dto';
+import { BusquedaRutaDto } from './dto/busqueda-ruta-dto';
 
 @Controller('rutas')
 export class RutasController {
@@ -29,7 +30,6 @@ export class RutasController {
     //console.log(CreateRutaGeneralDto);
     return this.rutasService.create_general(CreateRutaGeneralDto);
   }
-  
 
   @Get()
   findAllGeneral() {
@@ -59,29 +59,27 @@ export class RutasController {
   remove(@Param('id') id: string) {
     return this.rutasService.remove(+id);
   }
+  @Get('debug/grafo')
+  obtenerEstructuraGrafo() {
+    // return "funciona el endpoint de prueba";
+    return this.rutasService.obtenerEstructuraGrafo();
+  }
+  @Post('ruta-optima')
+  async buscarRuta(@Body() busquedaDto: BusquedaRutaDto) {
+    const { latOrigen, lonOrigen, latDestino, lonDestino } = busquedaDto;
 
-  @Post('grafo') construirGrafo(
-    @Body('puntos') puntos: PuntoDto[],
-    @Body('rutaPuntos') rutaPuntos: any[],
-  ) {
-    return this.rutasService.construirGrafo(puntos, rutaPuntos);
-  }
-  @Post('calcular')
-  async calcular(@Body() body: any) {
-    // return 'hola';
-    // Asegúrate de llamar al service y retornar su promesa
-    console.log(
-      body.origenLat,
-      body.origenLng,
-      body.destinoLat,
-      body.destinoLng,
-    );
-    return await this.rutasService.obtenerRutaOptima(
-      body.origenLat,
-      body.origenLng,
-      body.destinoLat,
-      body.destinoLng,
+    // Llamamos al servicio pasando los datos del body
+    return await this.rutasService.buscarRutaOptima(
+      latOrigen,
+      lonOrigen,
+      latDestino,
+      lonDestino,
     );
   }
-  // rutas.controller.ts
+  @Post('nodo-cercano')
+  async nodoCercano(@Body() busquedaDto: BusquedaRutaDto) {
+    const { latOrigen, lonOrigen } = busquedaDto;
+    return this.rutasService.encontrarNodoCercano(latOrigen, lonOrigen);
+  }
+  // rutas.controller.ts}
 }

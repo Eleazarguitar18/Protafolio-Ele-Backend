@@ -1,4 +1,4 @@
-import { BaseEntityAudit } from 'src/common/filters/entities/base-entity.audit';
+import { BaseEntityAudit } from 'src/common/entities/base-entity.audit';
 import { Ruta } from 'src/rutas/entities/ruta.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 

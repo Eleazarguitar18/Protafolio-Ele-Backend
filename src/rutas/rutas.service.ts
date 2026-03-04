@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { CreateRutaDto } from './dto/create-ruta.dto';
 import { UpdateRutaDto } from './dto/update-ruta.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,10 +13,9 @@ import { PuntosService } from 'src/puntos/puntos.service';
 import { Punto } from 'src/puntos/entities/punto.entity';
 import { CreateRutaPuntosDto } from './dto/create-ruta-puntos-dto';
 import { RutaPunto } from './entities/ruta_puntos.entity';
-import { PuntoDto } from 'src/puntos/dto/punto-dto';
-import { GrafoDto } from './dto/grafo-dto';
-import { NodoDto } from './dto/nodo-dto';
-import { AristaDto } from './dto/arista-dto';
+import { DirectedGraph } from 'graphology';
+import { INodoGrafo } from './interfaces/grafo.interface';
+import { dijkstra } from 'graphology-shortest-path';
 export interface TramoItinerario {
   modo: string;
   lineaId: number;
@@ -32,7 +31,7 @@ export interface RespuestaRuta {
   mensaje: string;
 }
 @Injectable()
-export class RutasService {
+export class RutasService implements OnModuleInit {
   constructor(
     @InjectRepository(Ruta)
     private rutaRepository: Repository<Ruta>,
@@ -88,7 +87,7 @@ export class RutasService {
 
   async findAllGeneral() {
     const rutas = await this.rutaRepository.find({
-      relations: ['linea','rutaPuntos'],
+      relations: ['linea', 'rutaPuntos'],
     });
     return {
       status: 200,
@@ -129,223 +128,206 @@ export class RutasService {
   remove(id: number) {
     return `This action removes a #${id} ruta`;
   }
-  construirGrafo(puntos: PuntoDto[], rutaPuntos: any[]): GrafoDto {
-    // DIAGNÓSTICO:
-    console.log('--- DEBUG GRAFO ---');
-    console.log('Cantidad de puntos:', puntos.length);
-    console.log('Cantidad de rutas:', rutaPuntos.length);
-    if (rutaPuntos.length > 0) {
-      console.log('Muestra de la primera ruta:', rutaPuntos[0]);
+  async onModuleInit() {
+    console.log('El módulo de rutas se ha iniciado en Debian...');
+    try {
+      await this.construirGrafo();
+    } catch (error) {
+      console.error('Error al construir el grafo:', error);
     }
-    console.log('-------------------');
-    const nodos: Record<number, NodoDto> = {};
-    const aristas: Record<number, AristaDto[]> = {};
-
-    puntos.forEach((p) => {
-      nodos[p.id] = {
-        id: p.id,
-        nombre: p.nombre,
-        latitud: p.latitud,
-        longitud: p.longitud,
-      };
-    });
-
-    rutaPuntos.forEach((rp) => {
-      // DIAGNÓSTICO:
-
-      // REVISIÓN CRÍTICA: Asegúrate de usar el nombre exacto de la columna en la DB
-      // Si en tu DB es 'origen_id', cámbialo aquí.
-      const origenId = rp.origenId || rp.origen_id;
-      const destinoId = rp.destinoId || rp.destino_id;
-      const peso = rp.distancia_al_siguiente || rp.distancia || 0;
-
-      if (origenId === undefined || destinoId === undefined) {
-        console.error('Fila de ruta_punto con IDs nulos:', rp);
-        return; // Saltamos esta fila dañada
-      }
-
-      const arista: AristaDto = {
-        origen: Number(origenId),
-        destino: Number(destinoId),
-        peso: Number(peso),
-        lineaId: rp.lineaId || rp.linea_id,
-        modo: 'minibus',
-      };
-
-      if (!aristas[arista.origen]) {
-        aristas[arista.origen] = [];
-      }
-      aristas[arista.origen].push(arista);
-    });
-
-    return { nodos, aristas };
   }
-
-  private ejecutarDijkstra(
-    grafo: GrafoDto,
-    idOrigen: number,
-    idDestino: number,
-  ) {
-    const distancias = new Map<number, number>();
-    const previos = new Map<
-      number,
-      { nodoId: number; lineaId: number; peso: number } | null
-    >();
-    const visitados = new Set<number>();
-
-    // 1. Inicializar
-    Object.keys(grafo.nodos).forEach((idStr) => {
-      const id = Number(idStr);
-      distancias.set(id, Infinity);
-      previos.set(id, null);
+  private grafo = new DirectedGraph<INodoGrafo>();
+  private async construirGrafo() {
+    this.grafo.clear(); // Limpiamos para evitar duplicados al reiniciar
+    const rutas = await this.rutaRepository.find({
+      relations: ['rutaPuntos', 'rutaPuntos.punto', 'linea'],
     });
 
-    distancias.set(idOrigen, 0);
+    // Mapa usando las coordenadas como llave para asegurar el transbordo
+    const paradasFisicas = new Map<string, string[]>();
 
-    while (true) {
-      let nodoActual: number | null = null;
-      let distanciaMinima = Infinity;
+    rutas.forEach((ruta) => {
+      const puntosOrdenados = ruta.rutaPuntos.sort((a, b) => a.orden - b.orden);
 
-      // 2. Seleccionar nodo con distancia mínima
-      for (const [id, dist] of distancias.entries()) {
-        if (!visitados.has(id) && dist < distanciaMinima) {
-          distanciaMinima = dist;
-          nodoActual = id;
-        }
-      }
+      puntosOrdenados.forEach((rp, index) => {
+        const nodoId = rp.id.toString();
 
-      if (nodoActual === null || nodoActual === idDestino) break;
-      visitados.add(nodoActual);
+        // Aseguramos que lat/lon sean números
+        const lat = Number(rp.punto.latitud);
+        const lon = Number(rp.punto.longitud);
 
-      // 3. Explorar aristas
-      const aristasVecinas = grafo.aristas[nodoActual] || [];
-      for (const arista of aristasVecinas) {
-        if (visitados.has(arista.destino)) continue;
+        this.grafo.mergeNode(nodoId, {
+          id: nodoId,
+          lat: lat,
+          lon: lon,
+          rutaId: ruta.id,
+          lineaNombre: ruta.linea.numero,
+        });
 
-        const nuevaDistancia =
-          distancias.get(nodoActual)! + Number(arista.peso);
-
-        if (nuevaDistancia < distancias.get(arista.destino)!) {
-          distancias.set(arista.destino, nuevaDistancia);
-          previos.set(arista.destino, {
-            nodoId: nodoActual,
-            lineaId: arista.lineaId,
-            peso: Number(arista.peso),
+        // Aristas de trayecto (Bus)
+        if (index < puntosOrdenados.length - 1) {
+          const siguienteId = puntosOrdenados[index + 1].id.toString();
+          this.grafo.mergeEdge(nodoId, siguienteId, {
+            weight: Number(rp.distancia_siguiente) || 500,
+            tipo: 'minibus',
           });
         }
-      }
-    }
 
-    // --- LÓGICA DE ACERCAMIENTO ---
-    let destinoFinalReal = idDestino;
-    let esRutaParcial = false;
-
-    if (distancias.get(idDestino) === Infinity) {
-      esRutaParcial = true;
-      let minDiff = Infinity;
-      const nodoDestinoInfo = grafo.nodos[idDestino];
-
-      // Buscamos cuál de los nodos que SÍ alcanzamos está más cerca del destino final
-      visitados.forEach((idVisitado) => {
-        const nodoV = grafo.nodos[idVisitado];
-        // Distancia euclidiana simple para encontrar cercanía geográfica
-        const diff = Math.sqrt(
-          Math.pow(nodoV.latitud - nodoDestinoInfo.latitud, 2) +
-            Math.pow(nodoV.longitud - nodoDestinoInfo.longitud, 2),
-        );
-        if (diff < minDiff) {
-          minDiff = diff;
-          destinoFinalReal = idVisitado;
-        }
+        // IMPORTANTE: Usamos la coordenada como llave de transbordo
+        // Esto conecta nodos si están en el mismo lugar exacto, tengan el ID que tengan
+        const coordKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+        const lista = paradasFisicas.get(coordKey) || [];
+        lista.push(nodoId);
+        paradasFisicas.set(coordKey, lista);
       });
-    }
+    });
 
-    return {
-      previos,
-      distanciaTotal: distancias.get(destinoFinalReal),
-      destinoAlcanzado: destinoFinalReal,
-      esRutaParcial,
-    };
-  }
-
-  private reconstruirCamino(
-    grafo: GrafoDto,
-    previos: Map<number, any>,
-    idDestino: number,
-  ) {
-    const itinerario: TramoItinerario[] = [];
-    let actualId = idDestino;
-
-    // Los Map (previos) siguen usando .has() y .get()
-    if (!previos.has(actualId) || previos.get(actualId) === null) {
-      return [];
-    }
-
-    while (previos.get(actualId) !== null) {
-      const info = previos.get(actualId);
-
-      // CORRECCIÓN: Acceso por corchetes para Record/Object
-      const nodoActual = grafo.nodos[actualId];
-      const nodoAnterior = grafo.nodos[info.nodoId];
-
-      if (nodoActual && nodoAnterior) {
-        itinerario.unshift({
-          modo: 'minibus',
-          lineaId: info.lineaId,
-          desde: nodoAnterior.nombre,
-          hasta: nodoActual.nombre,
-          distancia: info.peso,
-          coords: { lat: nodoActual.latitud, lng: nodoActual.longitud },
-        });
+    // Generar transbordos
+    let transbordosCreados = 0;
+    paradasFisicas.forEach((nodos) => {
+      if (nodos.length > 1) {
+        for (const idA of nodos) {
+          for (const idB of nodos) {
+            if (idA !== idB) {
+              this.grafo.mergeEdge(idA, idB, {
+                weight: 1000,
+                tipo: 'TRANSBORDO',
+              });
+              transbordosCreados++;
+            }
+          }
+        }
       }
+    });
 
-      actualId = info.nodoId;
-    }
-
-    return itinerario;
+    console.log(`--- REPORTE DE GRAFO ---`);
+    console.log(`Nodos: ${this.grafo.order}`);
+    console.log(`Aristas Bus: ${this.grafo.size - transbordosCreados}`);
+    console.log(`Aristas Transbordo: ${transbordosCreados}`);
   }
-  async obtenerRutaOptima(
-    origenLat: number,
-    origenLng: number,
-    destinoLat: number,
-    destinoLng: number,
-  ): Promise<RespuestaRuta> {
-    // A. Buscar paradas cercanas en la DB
-    const pInicio = await this.puntosService.buscarCercano(
-      origenLat,
-      origenLng,
+  // private async construirGrafo() {
+  //   const rutas = await this.rutaRepository.find({
+  //     relations: ['rutaPuntos', 'rutaPuntos.punto', 'linea'],
+  //   });
+
+  //   rutas.forEach((ruta) => {
+  //     ruta.rutaPuntos.forEach((rp) => {
+  //       // AQUÍ usamos la interfaz INodoGrafo
+  //       const atributosNodo: INodoGrafo = {
+  //         id: rp.id.toString(),
+  //         lat: rp.punto.latitud,
+  //         lon: rp.punto.longitud,
+  //         rutaId: ruta.id,
+  //         lineaNombre: ruta.linea.numero,
+  //         // (puedes añadir más si tu interfaz los tiene)
+  //       };
+  //       // Guardamos en el grafo con la seguridad de la interfaz
+  //       this.grafo.mergeNode(atributosNodo.id, atributosNodo);
+
+  //       // Conexión...
+  //     });
+  //   });
+  //   console.log('Grafo construido con éxito. Nodos:', this.grafo.order);
+  //   console.log('Grafo construido con éxito. Nodos:', this.grafo);
+  // }
+
+  // En RutasService
+  obtenerEstructuraGrafo() {
+    try {
+      // IMPORTANTE: .export() convierte el grafo en un JSON legible
+      const data = this.grafo.export();
+
+      // Si el grafo es muy grande, mejor devolver un resumen o solo los primeros 100
+      return {
+        totalNodos: data.nodes.length,
+        totalAristas: data.edges.length,
+        nodos: data.nodes, // Aquí van todos los puntos
+        aristas: data.edges, // Aquí van todas las conexiones
+      };
+    } catch (error) {
+      // Gracias a tu nuevo AllExceptionsFilter, este error será capturado detalladamente
+      throw new Error(`Error al exportar el grafo: ${error.message}`);
+    }
+  }
+  async buscarRutaOptima(
+    latOrigen: number,
+    lonOrigen: number,
+    latDestino: number,
+    lonDestino: number,
+  ) {
+    // 1. Encontrar los nodos más cercanos al origen y destino
+    const nodoInicio = this.encontrarNodoCercano(latOrigen, lonOrigen);
+    const nodoFin = this.encontrarNodoCercano(latDestino, lonDestino);
+    console.log(`Nodo inicio: ${nodoInicio}, Nodo fin: ${nodoFin}`);
+    if (!nodoInicio || !nodoFin) {
+      throw new Error('No se encontraron paradas cercanas a tu ubicación');
+    }
+
+    // 2. Ejecutar Dijkstra (bidireccional es más rápido para grafos grandes)
+    const camino = dijkstra.bidirectional(
+      this.grafo,
+      nodoInicio,
+      nodoFin,
+      (edge, attr) => {
+        return attr.weight; // Usamos el peso que definimos al crear las aristas
+      },
     );
-    const pFin = await this.puntosService.buscarCercano(destinoLat, destinoLng);
 
-    if (!pInicio || !pFin) {
-      throw new NotFoundException('No se encontraron paradas cercanas.');
-    }
+    if (!camino)
+      return { mensaje: 'No hay ruta disponible entre estos puntos' };
 
-    // B. Construir Grafo
-    const puntos = await this.puntosService.findAll();
-    const rutasPuntos = await this.rutaPuntoRepository.find();
-    const grafo = this.construirGrafo(puntos, rutasPuntos);
-
-    // C. Ejecutar Dijkstra
-    const { previos, distanciaTotal, destinoAlcanzado, esRutaParcial } =
-      this.ejecutarDijkstra(grafo, pInicio.id, pFin.id);
-
-    // D. Reconstruir Camino
-    const tramos = this.reconstruirCamino(grafo, previos, destinoAlcanzado);
-
-    if (tramos.length === 0 && pInicio.id !== pFin.id) {
-      throw new NotFoundException(
-        'No se pudo encontrar ninguna ruta transitable.',
+    // 3. Formatear la respuesta para el usuario
+    return this.formatearResultado(camino);
+  }
+  // Método auxiliar para buscar el nodo más cercano (distancia simple)
+  public encontrarNodoCercano(lat: number, lon: number): string | null {
+    let mejorNodo: string | null = null;
+    let distanciaMinima = Infinity;
+    console.log(`Buscando nodo cercano a lat: ${lat}, lon: ${lon}`);
+    this.grafo.forEachNode((node, attr) => {
+      const d = Math.sqrt(
+        Math.pow(attr.lat - lat, 2) + Math.pow(attr.lon - lon, 2),
       );
-    }
+      console.log(
+        `Distancia al nodo ${node} (lat: ${attr.lat}, lon: ${attr.lon}): ${d}`,
+      );
+      if (d < distanciaMinima) {
+        distanciaMinima = d;
+        mejorNodo = node;
+      }
+    });
+
+    return mejorNodo;
+  }
+  private formatearResultado(nodosIds: string[]) {
+    // Mapeamos los IDs que devolvió Dijkstra a los atributos que guardamos en el grafo
+    const rutaCompleta = nodosIds.map((id) => {
+      const atributos = this.grafo.getNodeAttributes(id);
+      return {
+        id: atributos.id,
+        lat: atributos.lat,
+        lon: atributos.lon,
+        linea: atributos.lineaNombre,
+        rutaId: atributos.rutaId,
+        // Aquí podrías añadir más si los guardaste en mergeNode
+      };
+    });
+
+    // Calculamos un resumen rápido
+    const origen = rutaCompleta[0];
+    const destino = rutaCompleta[rutaCompleta.length - 1];
 
     return {
-      distanciaTotalMetros: Math.round(distanciaTotal || 0),
-      cantidadTramos: tramos.length,
-      tramos: tramos,
-      mensaje: esRutaParcial
-        ? 'Ruta parcial: No hay minibús directo hasta el final, te acercamos lo más posible.'
-        : 'Ruta óptima encontrada.',
+      distancia_estimada: `${rutaCompleta.length - 1} tramos entre paradas`,
+      origen: {
+        nombre: `Punto cercano a inicio`,
+        coords: { lat: origen.lat, lon: origen.lon },
+      },
+      destino: {
+        nombre: `Punto cercano a destino`,
+        coords: { lat: destino.lat, lon: destino.lon },
+      },
+      camino: rutaCompleta,
     };
   }
 }

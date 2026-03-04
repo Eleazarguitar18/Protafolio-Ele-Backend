@@ -1,4 +1,4 @@
-import { BaseEntityAudit } from 'src/common/filters/entities/base-entity.audit';
+import { BaseEntityAudit } from 'src/common/entities/base-entity.audit';
 import { Linea } from 'src/lineas/entities/linea.entity';
 import {
   Column,
