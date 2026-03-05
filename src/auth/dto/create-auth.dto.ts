@@ -11,6 +11,7 @@ export class CreateAuthDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+  @IsOptional()
   estado: boolean = true;
   // datos de la persona
   @IsString()

@@ -11,6 +11,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { LineasModule } from './lineas/lineas.module';
 import { RutasModule } from './rutas/rutas.module';
 import { PuntosModule } from './puntos/puntos.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { MailModule } from './mail/mail.module';
 @Module({
   imports: [
     AuthModule,
@@ -49,10 +51,12 @@ import { PuntosModule } from './puntos/puntos.module';
       // secret: jwtConstants.secret,
       signOptions: { expiresIn: '60s' },
     }),
+   
     UsuarioModule,
     LineasModule,
     RutasModule,
     PuntosModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

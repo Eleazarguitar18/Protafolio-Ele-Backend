@@ -15,7 +15,13 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
   app.enableCors();
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Elimina propiedades que no estén en el DTO
+      forbidNonWhitelisted: true, // Lanza error si hay propiedades extra
+      transform: true, // Transforma los tipos automáticamente
+    }),
+  );
   // app.useGlobalFilters(new TypeOrmFilter());
   // main.ts
   const httpAdapterHost = app.get(HttpAdapterHost);

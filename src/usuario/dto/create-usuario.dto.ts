@@ -16,6 +16,7 @@ export class CreateUsuarioDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+  @IsOptional()
   estado: boolean = true;
 
   @IsOptional()

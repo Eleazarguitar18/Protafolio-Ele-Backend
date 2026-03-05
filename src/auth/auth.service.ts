@@ -15,6 +15,8 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { SignInDto } from './dto/SingInDto';
 import { Persona } from 'src/persona/entities/persona.entity';
+import crypto from 'crypto';
+import { MailService } from 'src/mail/mail.service';
 @Injectable()
 export class AuthService {
   constructor(
@@ -23,6 +25,7 @@ export class AuthService {
     @InjectRepository(Persona)
     private personaRepository: Repository<Persona>,
     private readonly personaService: PersonaService,
+    private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private jwtService: JwtService,
   ) {}
@@ -134,6 +137,72 @@ export class AuthService {
     }
   }
 
+  async changePassword(email: string, newPassword: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    const passwordHash = await this.encriptar_password(newPassword);
+    user.password = passwordHash;
+
+    this.mailService.enviarCorreo({
+      email: user.email,
+      subject: 'Cambio de contraseña exitoso',
+      message: `Hola ${user.name}, tu contraseña ha sido cambiada exitosamente. Si no realizaste este cambio, por favor contacta con soporte inmediatamente.`,
+      name: user.name,
+    });
+    return this.userRepository.save(user);
+  }
+  // async correoPrueba(destinatario: string) {
+  //   const emailService = new EmailService(this.mailerService);
+  //   return await emailService.enviarCorreoPrueba(destinatario);
+  // }
+  // async requestPasswordChange(email: string): Promise<{ message: string }> {
+  //   const user = await this.userRepository.findOne({ where: { email } });
+  //   if (!user) {
+  //     throw new NotFoundException('Usuario no encontrado');
+  //   }
+
+  //   const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+  //   const codeExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+  //   user.passwordResetCode = code;
+  //   user.passwordResetExpiry = codeExpiry;
+  //   await this.userRepository.save(user);
+
+  //   // Aquí iría el envío de email con el código
+  //   await EmailService.sendEmailChangePassword(email, code);
+
+  //   return { message: 'Código de verificación enviado al correo' };
+  // }
+
+  // async confirmPasswordChange(
+  //   email: string,
+  //   code: string,
+  //   newPassword: string,
+  // ): Promise<{ message: string }> {
+  //   const user = await this.userRepository.findOne({ where: { email } });
+  //   if (!user) {
+  //     throw new NotFoundException('Usuario no encontrado');
+  //   }
+
+  //   if (!user.passwordResetCode || user.passwordResetCode !== code) {
+  //     throw new UnauthorizedException('Código de verificación inválido');
+  //   }
+
+  //   if (new Date() > user.passwordResetExpiry) {
+  //     throw new UnauthorizedException('Código de verificación expirado');
+  //   }
+
+  //   const hash = await this.encriptar_password(newPassword);
+  //   user.password = hash;
+  //   user.passwordResetCode = null;
+  //   user.passwordResetExpiry = null;
+  //   await this.userRepository.save(user);
+
+  //   return { message: 'Contraseña actualizada correctamente' };
+  // }
   findAll() {
     return `This action returns all auth`;
   }

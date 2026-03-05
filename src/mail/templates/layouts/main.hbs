@@ -1,0 +1,17 @@
+<html>
+<head>
+    <style>
+        /* Estilos base */
+        .body-bg { background-color: #f4f4f4; padding: 20px; }
+        .content-card { background-color: #ffffff; max-width: 600px; margin: 0 auto; border-radius: 10px; }
+    </style>
+</head>
+<body class="body-bg">
+    <table class="content-card" width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr><td> {{> header }} </td></tr> <tr>
+            <td style="padding: 40px;">
+                {{{ body }}} </td>
+        </tr>
+        <tr><td> {{> footer }} </td></tr> </table>
+</body>
+</html>

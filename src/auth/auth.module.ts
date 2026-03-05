@@ -8,9 +8,10 @@ import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './config/auth.guard';
 import { Persona } from 'src/persona/entities/persona.entity';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuario, Persona]), PersonaModule, UsuarioModule],
+  imports: [TypeOrmModule.forFeature([Usuario, Persona]), PersonaModule, UsuarioModule, MailModule],
   controllers: [AuthController],
   providers: [AuthService,
     {
@@ -18,6 +19,6 @@ import { Persona } from 'src/persona/entities/persona.entity';
       useClass: AuthGuard,
     },
   ],
-  exports: [AuthService]
+  exports: [AuthService],
 })
 export class AuthModule {}

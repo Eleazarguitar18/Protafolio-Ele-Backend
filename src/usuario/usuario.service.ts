@@ -10,6 +10,7 @@ import { Persona } from 'src/persona/entities/persona.entity';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class UsuarioService {
@@ -19,6 +20,7 @@ export class UsuarioService {
     @InjectRepository(Persona)
         private personaRepository: Repository<Persona>,
         private readonly personaService: PersonaService,
+        private readonly mailService: MailService,
         private readonly configService: ConfigService,
         private jwtService: JwtService,
   ) {}
@@ -51,13 +53,14 @@ export class UsuarioService {
         createAuthDto.s_apellido,
       email: createAuthDto.email,
       password: password_hash,
-      estado: createAuthDto.estado,
+      estado: true,
       persona: persona,
     };
    
 
     const user = this.userRepository.create(userDto);
     const data = await this.userRepository.save(user);
+    await this.mailService.sendWelcome(userDto.email, userDto.name);
     return data;
   }
 
