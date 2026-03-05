@@ -22,7 +22,7 @@ import { join } from 'path';
           },
         },
         tls: {
-          rejectUnauthorized: false, // Esto ayuda si hay temas de certificados en Debian
+          rejectUnauthorized: true, // Esto ayuda si hay temas de certificados en Debian
         },
         defaults: {
           from: '"Rutea" <vortex.dev26@gmail.com>',

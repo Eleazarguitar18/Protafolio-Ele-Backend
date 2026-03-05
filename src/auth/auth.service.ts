@@ -149,15 +149,12 @@ export class AuthService {
     this.mailService.enviarCorreo({
       email: user.email,
       subject: 'Cambio de contraseña exitoso',
-      message: `Hola ${user.name}, tu contraseña ha sido cambiada exitosamente. Si no realizaste este cambio, por favor contacta con soporte inmediatamente.`,
+      message: `Hola ${user.name}, tu contraseña ha sido cambiada exitosamente. 
+      Si no realizaste este cambio, por favor contacta con soporte inmediatamente.`,
       name: user.name,
     });
     return this.userRepository.save(user);
   }
-  // async correoPrueba(destinatario: string) {
-  //   const emailService = new EmailService(this.mailerService);
-  //   return await emailService.enviarCorreoPrueba(destinatario);
-  // }
   // async requestPasswordChange(email: string): Promise<{ message: string }> {
   //   const user = await this.userRepository.findOne({ where: { email } });
   //   if (!user) {

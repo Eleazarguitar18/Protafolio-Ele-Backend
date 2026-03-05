@@ -13,6 +13,8 @@ import { RutasModule } from './rutas/rutas.module';
 import { PuntosModule } from './puntos/puntos.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { MailModule } from './mail/mail.module';
+import KeyvRedis, { Keyv } from '@keyv/redis';
+import { CacheModule } from '@nestjs/cache-manager';
 @Module({
   imports: [
     AuthModule,
@@ -51,7 +53,18 @@ import { MailModule } from './mail/mail.module';
       // secret: jwtConstants.secret,
       signOptions: { expiresIn: '60s' },
     }),
-   
+  //  CacheModule.registerAsync({
+  //     useFactory: async () => {
+  //       return {
+  //         stores: [
+  //           new Keyv({
+  //             store: new CacheableMemory({ ttl: 60000, lruSize: 5000 }),
+  //           }),
+  //           new KeyvRedis('redis://localhost:6379'),
+  //         ],
+  //       };
+  //     },
+  //   }),
     UsuarioModule,
     LineasModule,
     RutasModule,
