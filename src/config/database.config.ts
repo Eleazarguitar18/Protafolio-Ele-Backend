@@ -11,8 +11,9 @@ export const DatabaseConfig: TypeOrmModuleAsyncOptions = {
     username: config.get<string>('DATABASE_USER'),
     password: config.get<string>('DATABASE_PASSWORD'),
     database: config.get<string>('DATABASE_NAME'),
-    ssl: config.get<string>('DATABASE_SSL') === 'true', // Dinámico desde .env
+    ssl: config.get<boolean>('DATABASE_SSL'), // Dinámico desde .env
     autoLoadEntities: true,
-    synchronize: config.get<string>('NODE_ENV') !== 'production', // Seguridad extra
+    synchronize:true, // Seguridad extra
+    // synchronize: config.get<string>('NODE_ENV') !== 'production', // Seguridad extra
   }),
 };
