@@ -19,15 +19,15 @@ import { DatabaseConfig } from './config/database.config';
 import { RedisManagerModule } from './redis-manager/redis-manager.module';
 @Module({
   imports: [
-    AuthModule,
-    PersonaModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    CacheModule.registerAsync(RedisConfig),
     TypeOrmModule.forRootAsync(DatabaseConfig),
     JwtModule.registerAsync({
       ...JwtConfig,
       global: true, // Lo definimos aquí para evitar errores de tipo en la constante
     }),
-    CacheModule.registerAsync(RedisConfig),
+    AuthModule,
+    PersonaModule,
     UsuarioModule,
     LineasModule,
     RutasModule,

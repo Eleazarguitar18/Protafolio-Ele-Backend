@@ -173,7 +173,7 @@ export class AuthService {
     // Clave: "reset_password:user@mail.com" | Valor: "CODE" | TTL: 900000ms (15 min)
     const redisKey = `reset_password:${email}`;
     await this.cacheManager.set(redisKey, code, 900000);
-
+    console.log(`Código de verificación para ${email}: ${code}`); // Para desarrollo, en producción no mostraría esto
     // 4. Enviar Email
     const { name } = user;
     await this.mailService.sendCode(email, name, code);
