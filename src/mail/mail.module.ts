@@ -15,14 +15,14 @@ import { join } from 'path';
         transport: {
           host: config.get<string>('EMAIL_HOST'),
           port: config.get<number>('EMAIL_PORT'),
-          secure: false,
+          secure: config.get<boolean>('EMAIL_SECURE'),
           auth: {
             user: config.get<string>('EMAIL_USER'),
             pass: config.get<string>('EMAIL_PASSWORD'),
           },
         },
         tls: {
-          rejectUnauthorized: false, // Esto ayuda si hay temas de certificados en Debian
+          rejectUnauthorized: config.get<boolean>('EMAIL_REJECT_UNAUTHORIZED'), // Esto ayuda si hay temas de certificados en Debian
         },
         defaults: {
           from: '"Rutea" <vortex.dev26@gmail.com>',
