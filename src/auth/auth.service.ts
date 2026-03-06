@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -17,6 +18,8 @@ import { SignInDto } from './dto/SingInDto';
 import { Persona } from 'src/persona/entities/persona.entity';
 import crypto from 'crypto';
 import { MailService } from 'src/mail/mail.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 @Injectable()
 export class AuthService {
   constructor(
@@ -28,6 +31,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private jwtService: JwtService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
   async create(createAuthDto: CreateAuthDto) {
     const emailUnique = await this.userRepository.findOne({
@@ -155,51 +159,64 @@ export class AuthService {
     });
     return this.userRepository.save(user);
   }
-  // async requestPasswordChange(email: string): Promise<{ message: string }> {
-  //   const user = await this.userRepository.findOne({ where: { email } });
-  //   if (!user) {
-  //     throw new NotFoundException('Usuario no encontrado');
-  //   }
+  async requestPasswordChange(email: string): Promise<{ message: string }> {
+    // 1. Validar que el usuario existe (Opcional por seguridad, tú decides)
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
 
-  //   const code = crypto.randomBytes(4).toString('hex').toUpperCase();
-  //   const codeExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+    // 2. Generar el código (puedes seguir usando crypto o un random simple)
+    const code = crypto.randomBytes(3).toString('hex').toUpperCase(); // Ejemplo: A1B2C3
 
-  //   user.passwordResetCode = code;
-  //   user.passwordResetExpiry = codeExpiry;
-  //   await this.userRepository.save(user);
+    // 3. Guardar en Redis
+    // Clave: "reset_password:user@mail.com" | Valor: "CODE" | TTL: 900000ms (15 min)
+    const redisKey = `reset_password:${email}`;
+    await this.cacheManager.set(redisKey, code, 900000);
 
-  //   // Aquí iría el envío de email con el código
-  //   await EmailService.sendEmailChangePassword(email, code);
+    // 4. Enviar Email
+    const { name } = user;
+    await this.mailService.sendCode(email, name, code);
 
-  //   return { message: 'Código de verificación enviado al correo' };
-  // }
+    return { message: 'Código de verificación enviado al correo' };
+  }
+  async confirmPasswordChange(
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const redisKey = `reset_password:${email}`;
 
-  // async confirmPasswordChange(
-  //   email: string,
-  //   code: string,
-  //   newPassword: string,
-  // ): Promise<{ message: string }> {
-  //   const user = await this.userRepository.findOne({ where: { email } });
-  //   if (!user) {
-  //     throw new NotFoundException('Usuario no encontrado');
-  //   }
+    // 1. Intentar obtener el código de Redis
+    const savedCode = await this.cacheManager.get<string>(redisKey);
 
-  //   if (!user.passwordResetCode || user.passwordResetCode !== code) {
-  //     throw new UnauthorizedException('Código de verificación inválido');
-  //   }
+    // 2. Si no hay código, es que expiró o no se solicitó
+    if (!savedCode) {
+      throw new UnauthorizedException('El código ha expirado o no existe');
+    }
 
-  //   if (new Date() > user.passwordResetExpiry) {
-  //     throw new UnauthorizedException('Código de verificación expirado');
-  //   }
+    // 3. Validar si el código coincide
+    if (savedCode !== code) {
+      throw new UnauthorizedException('Código de verificación inválido');
+    }
 
-  //   const hash = await this.encriptar_password(newPassword);
-  //   user.password = hash;
-  //   user.passwordResetCode = null;
-  //   user.passwordResetExpiry = null;
-  //   await this.userRepository.save(user);
+    // 4. Buscar al usuario para actualizar password
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
 
-  //   return { message: 'Contraseña actualizada correctamente' };
-  // }
+    // 5. Encriptar y Guardar en Postgres
+    const hash = await this.encriptar_password(newPassword);
+    user.password = hash;
+    await this.userRepository.save(user);
+
+    // 6. ¡IMPORTANTE! Borrar el código de Redis para que no se use de nuevo
+    await this.cacheManager.del(redisKey);
+    const { name } = user;
+    this.mailService.sendEmailChangePassword(email, name);
+    return { message: 'Contraseña actualizada correctamente' };
+  }
   findAll() {
     return `This action returns all auth`;
   }

@@ -46,6 +46,22 @@ export class AuthController {
     const token = authHeader?.split(' ')[1];
     return this.authService.refresh_token(token);
   }
+  @Public()
+  @Post('reset/code')
+  async requestPasswordChange(@Body() emailDto: { email: string }) {
+    return this.authService.requestPasswordChange(emailDto.email);
+  }
+  @Public()
+  @Post('reset-confirm')
+  async confirmPasswordChange(
+    @Body() resetDto: { email: string; code: string; newPassword: string }
+  ) {
+    return this.authService.confirmPasswordChange(
+      resetDto.email,
+      resetDto.code,
+      resetDto.newPassword
+    );
+  }
 
   @Get()
   findAll() {

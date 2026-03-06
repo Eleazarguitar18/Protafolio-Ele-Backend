@@ -23,8 +23,25 @@ export class MailService {
     await this.mailerService.sendMail({
       to: email,
       subject: 'Seguridad de Rutea: Cambio de contraseña exitoso',
-      template:'change-password', // Nombre de la plantilla sin extensión
+      template:'password-changed', // Nombre de la plantilla sin extensión
       context: {
+        name:name,// Pasamos el nombre para usarlo en la plantilla
+        // Puedes agregar más variables aquí si tu plantilla las necesita
+        date: new Date().toLocaleDateString(), // Ejemplo de variable adicional
+      },
+    });
+  }
+  async sendCode(
+    email: string,
+    name:string,
+    code: string,
+  ) {
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Seguridad de Rutea: Cambio de contraseña - Código de verificación',
+      template:'reset-code', // Nombre de la plantilla sin extensión
+      context: {
+        code: code, // Pasamos el código para usarlo en la plantilla
         name:name,// Pasamos el nombre para usarlo en la plantilla
         // Puedes agregar más variables aquí si tu plantilla las necesita
         date: new Date().toLocaleDateString(), // Ejemplo de variable adicional

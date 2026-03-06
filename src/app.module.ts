@@ -11,65 +11,29 @@ import { JwtModule } from '@nestjs/jwt';
 import { LineasModule } from './lineas/lineas.module';
 import { RutasModule } from './rutas/rutas.module';
 import { PuntosModule } from './puntos/puntos.module';
-import { MailerModule } from '@nestjs-modules/mailer';
 import { MailModule } from './mail/mail.module';
-import KeyvRedis, { Keyv } from '@keyv/redis';
 import { CacheModule } from '@nestjs/cache-manager';
+import { RedisConfig } from './config/redis.config';
+import { JwtConfig } from './config/jwt.config';
+import { DatabaseConfig } from './config/database.config';
+import { RedisManagerModule } from './redis-manager/redis-manager.module';
 @Module({
   imports: [
     AuthModule,
     PersonaModule,
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DATABASE_HOST'),
-        port: config.get<number>('DATABASE_PORT'),
-        username: config.get<string>('DATABASE_USER'),
-        password: config.get<string>('DATABASE_PASSWORD'),
-        database: config.get<string>('DATABASE_NAME'),
-        // ssl: true,
-        ssl: false,
-        //ssl: {
-        //  rejectUnauthorized: false, // necesario para Neon, Render, etc.
-        //},
-        autoLoadEntities: true,
-        synchronize: true, // solo desarrollo
-      }),
+    TypeOrmModule.forRootAsync(DatabaseConfig),
+    JwtModule.registerAsync({
+      ...JwtConfig,
+      global: true, // Lo definimos aquí para evitar errores de tipo en la constante
     }),
-    // JwtModule.registerAsync({
-    //   inject: [ConfigService],
-    //   useFactory: (config: ConfigService) => ({
-    //     secret: config.get<string>('JWT_SECRET'),
-    //     signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN') },
-    //   }),
-    // }),
-
-    JwtModule.register({
-      global: true,
-      secret: process.env.JWT_SECRET,
-      // secret: jwtConstants.secret,
-      signOptions: { expiresIn: '60s' },
-    }),
-  //  CacheModule.registerAsync({
-  //     useFactory: async () => {
-  //       return {
-  //         stores: [
-  //           new Keyv({
-  //             store: new CacheableMemory({ ttl: 60000, lruSize: 5000 }),
-  //           }),
-  //           new KeyvRedis('redis://localhost:6379'),
-  //         ],
-  //       };
-  //     },
-  //   }),
+    CacheModule.registerAsync(RedisConfig),
     UsuarioModule,
     LineasModule,
     RutasModule,
     PuntosModule,
     MailModule,
+    RedisManagerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
