@@ -16,6 +16,7 @@ import { join } from 'path';
           host: config.get<string>('EMAIL_HOST'),
           port: config.get<number>('EMAIL_PORT'),
           secure: config.get<boolean>('EMAIL_SECURE'),
+          family: 4,
           auth: {
             user: config.get<string>('EMAIL_USER'),
             pass: config.get<string>('EMAIL_PASSWORD'),
