@@ -17,6 +17,8 @@ import { join } from 'path';
           port: config.get<number>('EMAIL_PORT'),
           secure: config.get<boolean>('EMAIL_SECURE'),
           family: 4,
+          connectionTimeout: 10000, // 10 segundos para conectar
+          greetingTimeout: 10000, // 10 segundos para el saludo inicial
           auth: {
             user: config.get<string>('EMAIL_USER'),
             pass: config.get<string>('EMAIL_PASSWORD'),
