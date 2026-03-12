@@ -8,9 +8,10 @@ import { Persona } from 'src/persona/entities/persona.entity';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { MailModule } from 'src/mail/mail.module';
+import { Role } from 'src/auth/entities/role.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuario, Persona]), PersonaModule, MailModule],
+  imports: [TypeOrmModule.forFeature([Usuario, Persona,Role]), PersonaModule, MailModule],
   controllers: [UsuarioController],
   providers: [
     UsuarioService,

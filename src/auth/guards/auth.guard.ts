@@ -37,6 +37,10 @@ export class AuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get<string>('JWT_SECRET'), // ✅ secreto desde .env
       });
+      // Verificamos que el payload tenga lo que necesitamos
+      if (!payload || !payload.roleName) {
+        throw new UnauthorizedException('Token no contiene información de rol');
+      }
       // const payload = await this.jwtService.verifyAsync(
       //   token,
       //   {

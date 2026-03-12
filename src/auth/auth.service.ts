@@ -87,7 +87,7 @@ export class AuthService {
   async login(email: string, password: string): Promise<SignInDto | null> {
     const user = await this.userRepository.findOne({
       where: { email },
-      relations: ['persona'],
+      relations: ['persona', 'role'],
     });
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
@@ -96,7 +96,11 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Contraseña incorrecta');
     }
-    const payload = { sub: user.id, username: user.name };
+    const payload = {
+      sub: user.id,
+      username: user.name,
+      roleName: user.role?.nombre || 'user',
+    };
     const access_token = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_SECRET'),
       expiresIn: this.configService.get('JWT_EXPIRES_IN') || '15m',
@@ -237,8 +241,7 @@ export class AuthService {
     return `This action removes a #${id} auth`;
   }
 
-
-   async onModuleInit() {
+  async onModuleInit() {
     await this.seedRoles();
   }
 
@@ -249,14 +252,16 @@ export class AuthService {
       console.log('🌱 Sembrando roles en la base de datos...');
       await this.roleRepository.save([
         { nombre: 'admin', descripcion: 'Administrador con acceso total' },
-        {
-          nombre: 'lider',
-          descripcion: 'Líder de grupo con permisos de puntuación',
-        },
+        // {
+        //   nombre: 'lider',
+        //   descripcion: 'Líder de grupo con permisos de puntuación',
+        // },
         { nombre: 'user', descripcion: 'Usuario de grupo, solo lectura' },
       ]);
       console.log('✅ Roles creados con éxito');
     }
   }
-
+  findAllroles() {
+    return this.roleRepository.find();
+  }
 }

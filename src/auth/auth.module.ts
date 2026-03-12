@@ -12,9 +12,15 @@ import { MailModule } from 'src/mail/mail.module';
 import { Role } from './entities/role.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuario, Persona,Role]), PersonaModule, UsuarioModule, MailModule],
+  imports: [
+    TypeOrmModule.forFeature([Usuario, Persona, Role]),
+    PersonaModule,
+    UsuarioModule,
+    MailModule,
+  ],
   controllers: [AuthController],
-  providers: [AuthService,
+  providers: [
+    AuthService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
