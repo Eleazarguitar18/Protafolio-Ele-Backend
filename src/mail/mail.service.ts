@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { CreateAuthDto } from 'src/auth/dto/create-auth.dto';
 import { CreateMailDto } from './dto/create-mail.dto';
-import { Public } from 'src/auth/config/auth_public';
+import { Public } from 'src/auth/decorators/auth_public.decorator';
 
 @Injectable()
 export class MailService {

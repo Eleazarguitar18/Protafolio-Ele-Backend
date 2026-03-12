@@ -6,12 +6,13 @@ import { UsuarioModule } from 'src/usuario/usuario.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from './config/auth.guard';
+import { AuthGuard } from './guards/auth.guard';
 import { Persona } from 'src/persona/entities/persona.entity';
 import { MailModule } from 'src/mail/mail.module';
+import { Role } from './entities/role.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuario, Persona]), PersonaModule, UsuarioModule, MailModule],
+  imports: [TypeOrmModule.forFeature([Usuario, Persona,Role]), PersonaModule, UsuarioModule, MailModule],
   controllers: [AuthController],
   providers: [AuthService,
     {

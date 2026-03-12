@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -40,8 +40,37 @@ export class PersonaService {
   //   return data;
   // }
 
-  update(id: number, updatePersonaDto: UpdatePersonaDto) {
-    return `This action updates a #${id} persona`;
+  async update(
+    id: number,
+    updatePersonaDto: UpdatePersonaDto,
+    idUserUpdate: number,
+  ) {
+    // 1. Verificar existencia
+    const persona = await this.personaRepository.findOneBy({ id });
+
+    if (!persona) {
+      throw new NotFoundException(`La persona con ID ${id} no existe`);
+    }
+
+    // 2. Fusionar cambios
+    // Usamos merge para aplicar los cambios del DTO sobre la entidad encontrada
+    const personaEditada = this.personaRepository.merge(
+      persona,
+      updatePersonaDto,
+    );
+
+    // 3. Asignar auditoría
+    personaEditada.id_user_update = idUserUpdate;
+
+    // 4. Persistencia
+    try {
+      return await this.personaRepository.save(personaEditada);
+    } catch (error) {
+      // Manejo de errores de BD (ej. truncado de strings o formato de fecha)
+      throw new InternalServerErrorException(
+        'Error al actualizar los datos de la persona',
+      );
+    }
   }
 
   remove(id: number) {

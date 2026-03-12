@@ -6,8 +6,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
+  ManyToOne,
 } from 'typeorm';
 import { Persona } from '../../persona/entities/persona.entity';
+import { Role } from 'src/auth/entities/role.entity';
 
 @Entity({ name: 'user' })
 export class Usuario {
@@ -41,4 +43,9 @@ export class Usuario {
   @OneToOne(() => Persona, { eager: true })
   @JoinColumn({ name: 'id_persona' })
   persona: Persona;
+
+   // ROLES
+  @ManyToOne(() => Role, (role) => role.usuarios)
+  @JoinColumn({ name: 'id_role' })
+  role: Role;
 }

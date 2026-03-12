@@ -20,6 +20,7 @@ import crypto from 'crypto';
 import { MailService } from 'src/mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { Role } from './entities/role.entity';
 @Injectable()
 export class AuthService {
   constructor(
@@ -32,6 +33,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private jwtService: JwtService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
   ) {}
   async create(createAuthDto: CreateAuthDto) {
     const emailUnique = await this.userRepository.findOne({
@@ -220,7 +223,8 @@ export class AuthService {
   findAll() {
     return `This action returns all auth`;
   }
-
+  //  @Roles('admin')
+  // @UseGuards(RolesGuard)
   findOne(id: number) {
     return `This action returns a #${id} auth`;
   }
@@ -232,4 +236,27 @@ export class AuthService {
   remove(id: number) {
     return `This action removes a #${id} auth`;
   }
+
+
+   async onModuleInit() {
+    await this.seedRoles();
+  }
+
+  private async seedRoles() {
+    const rolesExistentes = await this.roleRepository.count();
+
+    if (rolesExistentes === 0) {
+      console.log('🌱 Sembrando roles en la base de datos...');
+      await this.roleRepository.save([
+        { nombre: 'admin', descripcion: 'Administrador con acceso total' },
+        {
+          nombre: 'lider',
+          descripcion: 'Líder de grupo con permisos de puntuación',
+        },
+        { nombre: 'user', descripcion: 'Usuario de grupo, solo lectura' },
+      ]);
+      console.log('✅ Roles creados con éxito');
+    }
+  }
+
 }

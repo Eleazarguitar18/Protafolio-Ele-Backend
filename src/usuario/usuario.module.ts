@@ -6,7 +6,7 @@ import { Usuario } from './entities/usuario.entity';
 import { PersonaModule } from 'src/persona/persona.module';
 import { Persona } from 'src/persona/entities/persona.entity';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from 'src/auth/config/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { MailModule } from 'src/mail/mail.module';
 
 @Module({

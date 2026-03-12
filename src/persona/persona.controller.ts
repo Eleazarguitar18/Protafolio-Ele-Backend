@@ -8,11 +8,14 @@ import {
   Delete,
   HttpException,
   UseGuards,
+  Req,
+  ParseIntPipe,
+  Put,
 } from '@nestjs/common';
 import { PersonaService } from './persona.service';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
-import { AuthGuard } from 'src/auth/config/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('persona')
 export class PersonaController {
@@ -56,12 +59,13 @@ export class PersonaController {
   findOne(@Param('id') id: string) {
     return this.personaService.findOne(+id);
   }
+  @Put()
+  async update(@Body() updatePersonaDto: UpdatePersonaDto) {
+    // Extraemos el ID del usuario que está logueado (inyectado por el Guard/Passport)
+    const { id_user_update, id } = updatePersonaDto;
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePersonaDto: UpdatePersonaDto) {
-    return this.personaService.update(+id, updatePersonaDto);
+    return await this.personaService.update(id, updatePersonaDto, id_user_update);
   }
-
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.personaService.remove(+id);

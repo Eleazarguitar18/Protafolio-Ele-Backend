@@ -15,7 +15,7 @@ import { join } from 'path';
         transport: {
           host: config.get<string>('EMAIL_HOST'),
           port: config.get<number>('EMAIL_PORT'),
-          secure: config.get<boolean>('EMAIL_SECURE'),
+          secure: config.get<string>('EMAIL_SECURE') === 'true',
           // 2. ESTA ES LA CLAVE: Forzamos la resolución de nombres a solo IPv4
           // En algunas versiones de Node/Nodemailer, 'family' dentro de transport
           // se ignora si el DNS devuelve IPv6 primero.
@@ -35,7 +35,8 @@ import { join } from 'path';
           },
         },
         tls: {
-          rejectUnauthorized: config.get<boolean>('EMAIL_REJECT_UNAUTHORIZED'), // Esto ayuda si hay temas de certificados en Debian
+          rejectUnauthorized:
+            config.get<string>('EMAIL_REJECT_UNAUTHORIZED') === 'true', // Esto ayuda si hay temas de certificados en Debian
         },
         defaults: {
           from: '"Rutea" <vortex.dev26@gmail.com>',
