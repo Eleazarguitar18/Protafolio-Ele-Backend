@@ -9,7 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 export class LineasService {
   constructor(
     @InjectRepository(Linea)
-    private lineasRepository: Repository<Linea>) {}
+    private lineasRepository: Repository<Linea>,
+  ) {}
   async create(createLineaDto: CreateLineaDto) {
     const linea = this.lineasRepository.create(createLineaDto);
     return await this.lineasRepository.save(linea);
@@ -31,11 +32,38 @@ export class LineasService {
     return data;
   }
 
-  update(id: number, updateLineaDto: UpdateLineaDto) {
-    return `This action updates a #${id} linea`;
+  async update(id: number, updateLineaDto: UpdateLineaDto) {
+    // 1. Preload busca la entidad por ID y le "encima" los nuevos datos del DTO
+    const linea = await this.lineasRepository.preload({
+      id: id,
+      ...updateLineaDto,
+    });
+
+    // 2. Si preload no encuentra nada, devuelve undefined
+    if (!linea) {
+      throw new NotFoundException(`La línea con ID ${id} no existe`);
+    }
+
+    // 3. Guardamos los cambios (esto disparará las validaciones y los suscriptores)
+    try {
+      return await this.lineasRepository.save(linea);
+    } catch (error) {
+      // Manejo de errores por si hay nombres duplicados en las líneas
+      throw new Error('Error al actualizar la línea: ' + error.message);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} linea`;
+  async remove(id: number) {
+    const data = await this.lineasRepository.findOneBy({ id: id });
+    if (!data) {
+      throw new NotFoundException(`La linea con ID ${id} no existe`);
+    }
+    data.estado = false;
+    try {
+      return await this.lineasRepository.save(data);
+    } catch (error) {
+      // Manejo de errores por si hay nombres duplicados en las líneas
+      throw new Error('Error al actualizar la línea: ' + error.message);
+    }
   }
 }

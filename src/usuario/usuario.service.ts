@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Repository } from 'typeorm';
@@ -18,14 +22,13 @@ export class UsuarioService {
     @InjectRepository(Usuario)
     private userRepository: Repository<Usuario>,
     @InjectRepository(Persona)
-        private personaRepository: Repository<Persona>,
-        private readonly personaService: PersonaService,
-        private readonly mailService: MailService,
-        private readonly configService: ConfigService,
-        private jwtService: JwtService,
+    private personaRepository: Repository<Persona>,
+    private readonly personaService: PersonaService,
+    private readonly mailService: MailService,
+    private readonly configService: ConfigService,
+    private jwtService: JwtService,
   ) {}
 
-  
   async create(createAuthDto: CreateAuthDto) {
     //  const emailUnique= await this.userRepository.findOne({
     //   where:{email:createAuthDto.email}
@@ -56,7 +59,6 @@ export class UsuarioService {
       estado: true,
       persona: persona,
     };
-   
 
     const user = this.userRepository.create(userDto);
     const data = await this.userRepository.save(user);
@@ -82,15 +84,27 @@ export class UsuarioService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} usuario`;
+    const data = this.userRepository.findOneBy({ id: id });
+    if (!data) {
+      throw new NotFoundException(`No existen datos de usuario`);
+    }
+    return data;
   }
 
   // updates
   update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
-    return `This action updates a #${id} usuario`;
+    const data = this.userRepository.update(id, updateUsuarioDto);
+
+    return data;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} usuario`;
+  async remove(id: number) {
+    const data = await this.userRepository.findOneBy({ id: id });
+    if (!data) {
+      throw new NotFoundException(`No existen datos de usuario`);
+    }
+    data.estado = false;
+
+    return await this.userRepository.save(data);
   }
 }

@@ -2,6 +2,9 @@
 import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 export abstract class BaseEntityAudit {
+  @Column({ default: true })
+  estado: boolean;
+  
   @Column({ nullable: true })
   id_user_create: number;
 

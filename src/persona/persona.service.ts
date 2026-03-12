@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,7 +23,9 @@ export class PersonaService {
   }
 
   async findAll() {
-    const data = await this.personaRepository.find();
+    const data = await this.personaRepository.find({
+      where: { estado: true },
+    });
     if (data.length === 0) {
       throw new NotFoundException(`No existen datos de personass`);
     }
@@ -73,7 +79,17 @@ export class PersonaService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} persona`;
+  async remove(id: number) {
+    const persona = await this.personaRepository.findOneBy({ id });
+    if (!persona) {
+      throw new NotFoundException(`La persona con ID ${id} no existe`);
+    }
+    persona.estado = false;
+    try {
+      return await this.personaRepository.save(persona);
+    } catch (error) {
+      // Manejo de errores por si hay nombres duplicados en las personas
+      throw new Error('Error al actualizar la persona: ' + error.message);
+    }
   }
 }
