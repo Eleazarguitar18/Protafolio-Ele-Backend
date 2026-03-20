@@ -1,5 +1,5 @@
 {
-  "name": "backend_rutea",
+  "name": "template_eleapi_nest",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -36,8 +36,6 @@
     "cache-manager": "^7.2.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
-    "graphology": "^0.26.0",
-    "graphology-shortest-path": "^2.1.0",
     "handlebars": "^4.7.8",
     "nodemailer": "^8.0.1",
     "pg": "^8.16.3",
