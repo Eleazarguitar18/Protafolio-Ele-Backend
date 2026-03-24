@@ -4,31 +4,25 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
-import { PersonaService } from 'src/persona/persona.service';
 import { Repository } from 'typeorm';
-import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 // import { hash } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { SignInDto } from './dto/SingInDto';
-import { Persona } from 'src/persona/entities/persona.entity';
 import crypto from 'crypto';
 import { MailService } from 'src/mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Role } from './entities/role.entity';
+import { User } from 'src/user/entities/user.entity';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(Usuario)
-    private userRepository: Repository<Usuario>,
-    @InjectRepository(Persona)
-    private personaRepository: Repository<Persona>,
-    private readonly personaService: PersonaService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private jwtService: JwtService,
@@ -36,42 +30,6 @@ export class AuthService {
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
   ) {}
-  async create(createAuthDto: CreateAuthDto) {
-    const emailUnique = await this.userRepository.findOne({
-      where: { email: createAuthDto.email },
-    });
-    if (emailUnique) {
-      throw new UnauthorizedException('El email ya se encuentra registrado');
-    }
-
-    // const ciUnique = await this.personaRepository.findOne({
-    //   where: { ci: createAuthDto.ci },
-    // });
-    // if (ciUnique) {
-    //   throw new UnauthorizedException('El ci ya se encuentra registrado');
-    // }
-    const persona = await this.personaService.create(createAuthDto);
-
-    // generaciond de contraseña
-    const password_hash = await this.encriptar_password(createAuthDto.password);
-    const userDto = {
-      name:
-        createAuthDto.nombres +
-        ' ' +
-        createAuthDto.p_apellido +
-        ' ' +
-        createAuthDto.s_apellido,
-      email: createAuthDto.email,
-      password: password_hash,
-      estado: createAuthDto.estado,
-      persona: persona,
-    };
-
-    const user = this.userRepository.create(userDto);
-    const data = await this.userRepository.save(user);
-    return data;
-  }
-
   async encriptar_password(password: string): Promise<string> {
     const saltRounds = parseInt(
       this.configService.get<string>('SALT_ROUNDS') ?? '10',
@@ -87,7 +45,8 @@ export class AuthService {
   async login(email: string, password: string): Promise<SignInDto | null> {
     const user = await this.userRepository.findOne({
       where: { email },
-      relations: ['persona', 'role'],
+      relations: ['role'],
+      select: ['id', 'email', 'password'],
     });
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
@@ -99,13 +58,13 @@ export class AuthService {
     const payload = {
       sub: user.id,
       username: user.name,
-      roleName: user.role?.nombre || 'user',
+      roleName: user.role?.name || 'user',
     };
     const access_token = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_SECRET'),
       expiresIn: this.configService.get('JWT_EXPIRES_IN') || '15m',
     });
-    const refreshToken = await this.jwtService.signAsync(
+    const refresh_token = await this.jwtService.signAsync(
       { sub: user.id },
       {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
@@ -113,9 +72,9 @@ export class AuthService {
       },
     );
     return {
-      access_token: access_token,
-      refresh_token: refreshToken,
-      user: user,
+      access_token,
+      refresh_token,
+      user,
     };
   }
 
@@ -249,16 +208,16 @@ export class AuthService {
     const rolesExistentes = await this.roleRepository.count();
 
     if (rolesExistentes === 0) {
-      console.log('🌱 Sembrando roles en la base de datos...');
+      console.log('Seeding roles in database...');
       await this.roleRepository.save([
-        { nombre: 'admin', descripcion: 'Administrador con acceso total' },
+        { name: 'admin', description: 'Administrador con acceso total' },
+        { name: 'user', description: 'Usuario de grupo, solo lectura' },
         // {
         //   nombre: 'lider',
         //   descripcion: 'Líder de grupo con permisos de puntuación',
         // },
-        { nombre: 'user', descripcion: 'Usuario de grupo, solo lectura' },
       ]);
-      console.log('✅ Roles creados con éxito');
+      console.log(' Roles created!!');
     }
   }
   findAllroles() {

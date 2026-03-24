@@ -1,6 +1,6 @@
 // src/auth/entity/role.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Usuario } from '../../usuario/entities/usuario.entity';
+import { User } from 'src/user/entities/user.entity';
 
 @Entity({ name: 'role' })
 export class Role {
@@ -8,11 +8,11 @@ export class Role {
   id: number;
 
   @Column({ unique: true })
-  nombre: string; // Ejemplo: 'admin', 'lider', 'user'
+  name: string; // Ejemplo: 'admin', 'lider', 'user'
 
   @Column({ nullable: true })
-  descripcion: string;
+  description: string;
 
-  @OneToMany(() => Usuario, (usuario) => usuario.role)
-  usuarios: Usuario[];
+  @OneToMany(() => User, (user) => user.role)
+  users: User[];
 }
