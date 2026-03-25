@@ -71,10 +71,12 @@ export class AuthService {
         expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
       },
     );
+    const userResponse = { ...user };
+    delete (userResponse as any).password;
     return {
       access_token,
       refresh_token,
-      user,
+      user: userResponse,
     };
   }
 

@@ -12,7 +12,10 @@ export class TechCategory extends BaseEntityAudit {
   name: string; // ej: 'Backend', 'Frontend', 'Mobile', 'DevOps'
 
   @Column({ nullable: true })
-  description: string;
+  description?: string;
+
+  // @Column({ nullable: true })
+  // icon?: string;
 
   // Una categoría tiene muchas tecnologías (1:N)
   @OneToMany(() => Technology, (tech) => tech.category)

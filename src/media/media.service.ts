@@ -1,9 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
+import { Media } from './entities/media.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class MediaService {
+  // constructor() {
+  //   @InjectRepository(Media)
+  //   private readonly mediaRepository: Repository<Media>;
+  // }
   create(createMediaDto: CreateMediaDto) {
     return 'This action adds a new media';
   }

@@ -1,26 +1,52 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCertificationDto } from './dto/create-certification.dto';
 import { UpdateCertificationDto } from './dto/update-certification.dto';
+import { Repository } from 'typeorm';
+import { Certification } from './entities/certification.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class CertificationService {
+  constructor(
+    @InjectRepository(Certification)
+    private readonly certifications: Repository<Certification>,
+  ) {}
   create(createCertificationDto: CreateCertificationDto) {
-    return 'This action adds a new certification';
+    const certification = this.certifications.create(createCertificationDto);
+    return this.certifications.save(certification);
   }
 
   findAll() {
-    return `This action returns all certification`;
+    return this.certifications.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} certification`;
+  async findOne(id: number) {
+    const certification = await this.certifications.findOneBy({ id });
+    
+    if (!certification) {
+      throw new NotFoundException(`Certification with ID ${id} not found`);
+    }
+    
+    return certification;
   }
 
-  update(id: number, updateCertificationDto: UpdateCertificationDto) {
-    return `This action updates a #${id} certification`;
+  async update(id: number, updateCertificationDto: UpdateCertificationDto) {
+    const certification = await this.certifications.findOneBy({ id });
+    
+    if (!certification) {
+      throw new NotFoundException(`Certification with ID ${id} not found`);
+    }
+    
+    return this.certifications.update(id, updateCertificationDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} certification`;
+  async remove(id: number) {
+    const certification = await this.certifications.findOneBy({ id });
+    
+    if (!certification) {
+      throw new NotFoundException(`Certification with ID ${id} not found`);
+    }
+    
+    return this.certifications.update(id, { estado: false });
   }
 }
